@@ -96,8 +96,8 @@ export const Navbar: React.FC = () => {
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50 no-print" dir={direction}>
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="bg-primary/10 p-2 rounded-lg">
-            <BarChart3 className="w-6 h-6 text-primary" />
+          <div className="bg-white p-1 rounded-lg border border-gray-100">
+            <img src="/logo.jpg" alt="Logo" className="w-8 h-8 object-contain" />
           </div>
           <div className="hidden md:block">
             <h1 className="text-lg font-bold text-primary leading-tight">{t('appTitle')}</h1>
@@ -362,13 +362,8 @@ const LoginPage = () => {
 
       <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-8 relative z-10 border border-gray-100">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 text-primary">
-            <div className="relative">
-              <MapPin className="w-8 h-8" />
-              <div className="absolute -bottom-1 -right-1 bg-secondary rounded-full p-0.5 border-2 border-white">
-                <Smile className="w-3 h-3 text-white" />
-              </div>
-            </div>
+          <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-gray-100 p-2">
+            <img src="/logo.jpg" alt="Logo" className="w-full h-full object-contain" />
           </div>
           <h2 className="text-2xl font-bold text-primary">{t('welcomeBack')}</h2>
           <p className="text-gray-500 text-sm mt-2 text-center">

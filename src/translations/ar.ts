@@ -1,7 +1,7 @@
 export const ar = {
     // General
-    appTitle: 'محلل المشاعر السياحية',
-    appSubtitle: 'Smart Tourism Sentiment Analyzer',
+    appTitle: 'تـورلايز',
+    appSubtitle: 'محلل المشاعر السياحية الذكي',
     adminUser: 'Admin User',
     logout: 'تسجيل الخروج',
     needHelp: 'هل تحتاج مساعدة؟',

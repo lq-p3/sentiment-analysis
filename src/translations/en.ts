@@ -1,6 +1,6 @@
 export const en = {
     // General
-    appTitle: 'Tourism Sentiment Analyzer',
+    appTitle: 'Touralyze',
     appSubtitle: 'Smart Tourism Sentiment Analyzer',
     adminUser: 'Admin User',
     logout: 'Logout',
