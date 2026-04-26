@@ -1,3 +1,13 @@
+/**
+ * ------------------------------------------------------------------
+ * English Localization Dictionary (en.ts)
+ * 
+ * Static key-value pair mapping implementing the translation payload
+ * natively injected into the global LanguageContext. Identifies the 
+ * default left-to-right (LTR) semantic literals utilized across the DOM hierarchy.
+ * ------------------------------------------------------------------
+ */
+
 export const en = {
     // General
     appTitle: 'Touralyze',
@@ -12,7 +22,7 @@ export const en = {
     dashboard: 'Dashboard',
     newAnalysis: 'New Analysis',
     reports: 'Reports',
-    about: 'About',
+    about: 'About the Project',
 
     // Login
     welcomeBack: 'Welcome Back',
@@ -29,17 +39,43 @@ export const en = {
     createAccountTitle: 'Create New Account',
     createAccountSubtitle: 'Start analyzing tourism review data',
     fullName: 'Full Name',
+    firstName: 'First Name',
+    lastName: 'Last Name',
     userType: 'User Type',
     user: 'User',
     admin: 'Admin',
     haveAccount: 'Have an account?',
     login: 'Login',
     createAccountButton: 'Create Account',
+    resetPasswordInstruction: 'Enter your registered email and a new password.',
+    newPassword: 'New Password',
+    resetPasswordButton: 'Reset Password',
+    passwordResetSuccess: 'Password has been reset successfully!',
+    demoOtpMessage: 'Note: This OTP is for demonstration testing only ',
+
+    // OTP Verification
+    otpTitle: 'Identity Verification',
+    otpSubtitle: 'Enter the verification code sent to your email',
+    otpSentTo: 'Code sent to',
+    otpPlaceholder: '0',
+    verifyButton: 'Verify',
+    resendCode: 'Resend Code',
+    resendIn: 'Resend in',
+    seconds: 'seconds',
+    didntReceive: 'Didn\'t receive the code?',
+    otpVerified: 'Verified successfully!',
+    otpInvalid: 'Invalid verification code, please try again',
+    otpExpired: 'Code expired, please resend',
+
+    // Google Maps Navigation
+    navigateToDestination: 'Navigate to Destination',
+    destinationLocation: 'Destination Location',
+    openInGoogleMaps: 'Open in Google Maps',
 
     // City Input
     analyzeReviews: 'Tourism Reviews Analysis',
     analyzeSubtitle: 'Choose a Saudi city, and let AI reveal visitor impressions and sentiment analysis accurately.',
-    cityName: 'City Name',
+    cityName: 'Choose your destination',
     cityPlaceholder: 'Example: AlUla, Riyadh, Jeddah...',
     discoverMessage: '✨ Discover what visitors say about your favorite destination',
     analyzeMessage: 'We analyze thousands of reviews from Google Maps and X to provide you with a comprehensive and accurate view of tourist experiences in Saudi cities.',
@@ -71,6 +107,9 @@ export const en = {
 
     // Other
     frequency: 'Frequency',
+    translateText: 'Translate',
+    translating: 'Translating...',
+    showOriginal: 'Show Original',
 
     // Report
     noReportData: 'No Data for Report',

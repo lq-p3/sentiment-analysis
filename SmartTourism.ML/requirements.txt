@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+pydantic
+selenium
+webdriver-manager
+pandas
+torch
+transformers
+accelerate
+arabic-reshaper
+python-bidi

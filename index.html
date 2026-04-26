@@ -1,31 +1,48 @@
-<!-- 
-  الصفحة الرئيسية للموقع (Main HTML File).
-  هذا هو الهيكل الأساسي للصفحة الذي يتم تحميله في المتصفح.
-  يحتوي على روابط الخطوط (Fonts) والمكتبات الخارجية (CDN).
--->
+<!-- Main Entry Point: The first file loaded by the browser to bootstrap the React application. -->
 <!DOCTYPE html>
+<!-- Set default language to Arabic ('ar') and reading direction to Right-To-Left ('rtl') -->
 <html lang="ar" dir="rtl">
 
 <head>
+  <!-- Character encoding to correctly display Arabic text and emojis -->
   <meta charset="UTF-8" />
+  <!-- Ensure the application is mobile-responsive by controlling viewport scaling -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
   <title>محلل المشاعر السياحية الذكي | Smart Tourism Sentiment Analyzer</title>
+
+  <!-- 
+    Load TailwindCSS via CDN for rapid UI styling. 
+    This allows the use of utility classes directly inside React components without writing custom CSS.
+  -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- 
+    Preconnect and load custom Google Fonts:
+    - 'Tajawal': Primary font for Arabic text.
+    - 'Inter': Secondary font for English text and numbers.
+  -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
     href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=Inter:wght@400;600&display=swap"
     rel="stylesheet">
+
+  <!-- 
+    Tailwind Configuration Injection
+    Defines the project's brand colors (Primary, Secondary, Accent) and custom fonts.
+    These custom utility classes (e.g., text-primary, bg-bgLight) are used throughout the React app.
+  -->
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            primary: '#1C4966', // Dark Blue
-            secondary: '#4FB2A0', // Teal Green
-            accent: '#F7C873', // Warm Gold
-            bgLight: '#F2F6F8', // Light Background
-            textMain: '#3B4A54', // Neutral Text
+            primary: '#1C4966',   // Dark Blue
+            secondary: '#4FB2A0', // Turquoise Green
+            accent: '#F7C873',    // Gold
+            bgLight: '#F2F6F8',   // Light Background
+            textMain: '#3B4A54',  // Main Text Color
           },
           fontFamily: {
             sans: ['Tajawal', 'sans-serif'],
@@ -35,23 +52,30 @@
       },
     }
   </script>
+  
+  <!-- 
+    Base Application Styles
+    Defines default font and background/text colors for the entire body.
+    Includes '@media print' rules to hide specific UI elements (e.g., translation, sidebars) during PDF export.
+  -->
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
       background-color: #F2F6F8;
       color: #3B4A54;
     }
-
+    /* Hide elements with 'no-print' class when generating PDF reports */
     @media print {
-      .no-print {
-        display: none !important;
-      }
-
-      .print-only {
-        display: block !important;
-      }
+      .no-print { display: none !important; }
+      .print-only { display: block !important; }
     }
   </style>
+
+  <!-- 
+    Import Maps (ES Modules via CDN)
+    Maps external dependencies to their CDN links because we are running in an AI-studio dev environment.
+    This allows the browser to resolve bare import specifiers like: import React from "react".
+  -->
   <script type="importmap">
 {
   "imports": {
@@ -70,7 +94,13 @@
 </head>
 
 <body>
+  <!-- 
+    React Mounting Point
+    This empty div acts as a container. React will attach itself here and inject the entire UI dynamically.
+  -->
   <div id="root"></div>
+  
+  <!-- Bootstraps the application by loading the main React TypeScript file -->
   <script type="module" src="/index.tsx"></script>
 </body>
 

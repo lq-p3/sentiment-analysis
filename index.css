@@ -1,28 +1,25 @@
-/* 
-  ملف التنسيقات العامة (Global Styles).
-  يحتوي على التنسيقات التي تطبق على كامل الموقع.
-  مثل اتجاه النص (RTL) وتنسيق شريط التمرير.
-*/
+/* Global Application Styles */
 
-/* Custom styles */
+/* Ensure the entire application adopts a Right-To-Left (RTL) reading direction by default */
 body {
     direction: rtl;
 }
 
-/* Scrollbar styling */
+/* 
+   Custom Scrollbar Styling 
+   Used for internally scrollable containers (e.g., the review list in the dashboard) 
+   to provide a sleek, thin scrollbar instead of the bulky browser default.
+*/
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-track {
     background: #f1f1f1;
 }
-
 .custom-scrollbar::-webkit-scrollbar-thumb {
     background: #ccc;
     border-radius: 3px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #bbb;
 }

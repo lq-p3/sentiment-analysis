@@ -1,7 +1,17 @@
+/**
+ * ------------------------------------------------------------------
+ * Arabic Localization Dictionary (ar.ts)
+ * 
+ * Static key-value pair mapping implementing the translation payload
+ * natively injected into the global LanguageContext. Identifies the 
+ * right-to-left (RTL) semantic literals utilized across the DOM representation.
+ * ------------------------------------------------------------------
+ */
+
 export const ar = {
     // General
-    appTitle: 'تـورلايز',
-    appSubtitle: 'محلل المشاعر السياحية الذكي',
+    appTitle: 'Touralyze',
+    appSubtitle: 'Smart Tourism Sentiment Analyzer',
     adminUser: 'Admin User',
     logout: 'تسجيل الخروج',
     needHelp: 'هل تحتاج مساعدة؟',
@@ -29,17 +39,43 @@ export const ar = {
     createAccountTitle: 'إنشاء حساب جديد',
     createAccountSubtitle: 'ابدأ في تحليل بيانات المراجعات السياحية',
     fullName: 'الاسم الكامل',
+    firstName: 'الاسم الأول',
+    lastName: 'اسم العائلة',
     userType: 'نوع المستخدم',
     user: 'مستخدم',
     admin: 'مشرف',
     haveAccount: 'لديك حساب؟',
     login: 'تسجيل الدخول',
     createAccountButton: 'إنشاء الحساب',
+    resetPasswordInstruction: 'أدخل بريدك الإلكتروني المسجل وكلمة المرور الجديدة.',
+    newPassword: 'كلمة المرور الجديدة',
+    resetPasswordButton: 'إعادة تعيين',
+    passwordResetSuccess: 'تم إعادة تعيين كلمة المرور بنجاح!',
+    demoOtpMessage: 'ملاحظة: هذا الرمز لغرض التجربة فقط ',
+
+    // OTP Verification
+    otpTitle: 'التحقق من الهوية',
+    otpSubtitle: 'أدخل رمز التحقق المرسل إلى بريدك الإلكتروني',
+    otpSentTo: 'تم إرسال الرمز إلى',
+    otpPlaceholder: '0',
+    verifyButton: 'تحقق',
+    resendCode: 'إعادة إرسال الرمز',
+    resendIn: 'إعادة الإرسال خلال',
+    seconds: 'ثانية',
+    didntReceive: 'لم يصلك الرمز؟',
+    otpVerified: 'تم التحقق بنجاح!',
+    otpInvalid: 'رمز التحقق غير صحيح، حاول مرة أخرى',
+    otpExpired: 'انتهت صلاحية الرمز، أعد الإرسال',
+
+    // Google Maps Navigation
+    navigateToDestination: 'انتقل إلى وجهتك',
+    destinationLocation: 'موقع الوجهة',
+    openInGoogleMaps: 'فتح في خرائط قوقل',
 
     // City Input
     analyzeReviews: 'تحليل المراجعات السياحية',
-    analyzeSubtitle: 'اختر مدينة سعودية، ودع الذكاء الاصطناعي يكشف لك عن انطباعات الزوار وتحليل مشاعرهم بدقة.',
-    cityName: 'اسم المدينة',
+    analyzeSubtitle: 'اختر وجهة سعودية، ودع الذكاء الاصطناعي يكشف لك عن انطباعات الزوار وتحليل مشاعرهم بدقة.',
+    cityName: 'اختر وجهتك',
     cityPlaceholder: 'مثال: العلا، الرياض، جدة...',
     discoverMessage: '✨ اكتشف ما يقوله الزوار عن وجهتك المفضلة',
     analyzeMessage: 'نحلل آلاف المراجعات من Google Maps و X لنقدم لك رؤية شاملة ودقيقة عن تجارب السياح في المدن السعودية',
@@ -71,6 +107,9 @@ export const ar = {
 
     // Other
     frequency: 'تكرار',
+    translateText: 'ترجمة النص',
+    translating: 'جارِ الترجمة...',
+    showOriginal: 'عرض الأصل',
 
     // Report
     noReportData: 'لا توجد بيانات للتقرير',
