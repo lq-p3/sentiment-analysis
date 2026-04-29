@@ -10,7 +10,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // تسجيل الخدمات
 builder.Services.AddControllers();
-builder.Services.AddHttpClient(); // للاتصال بسيرفر Python
+builder.Services.AddHttpClient("GeminiClient", client => {
+    client.Timeout = TimeSpan.FromSeconds(60);
+});
+builder.Services.AddScoped<SmartTourism.API.Services.GoogleGeminiService>();
 
 // ربط قاعدة بيانات SQLite
 builder.Services.AddDbContext<AppDbContext>(options =>

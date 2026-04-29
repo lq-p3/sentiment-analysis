@@ -26,7 +26,8 @@ import * as d3 from 'd3'; // D3 Object for generating Word Cloud mathematics and
 import { LanguageProvider, useLanguage } from './src/context/LanguageContext'; // React Context for Bilingual State
 import { AuthProvider, useAuth } from './src/context/AuthContext'; // React Context for User Authentication State
 import { LanguageSwitcher } from './src/components/LanguageSwitcher';
-
+import { ReportAIChat } from './src/components/ReportAIChat';
+import Settings from './src/pages/Settings';
 // ======================================================================
 // 1. TYPE DEFINITIONS & IMPORTS
 // ======================================================================
@@ -1595,30 +1596,13 @@ const ReportPage = () => {
     fetchData();
   }, [id]);
 
-  // Group reports by city/region for organized sidebar display
-  const groupedReports = useMemo(() => {
-    const groups: Record<string, ReportSummary[]> = {};
-    reportHistory.forEach(r => {
-      const city = r.city.trim();
-      if (!groups[city]) groups[city] = [];
-      groups[city].push(r);
-    });
-    return groups;
+  // Simply use the flat report history without region grouping
+  // We sort it by date descending to show the newest first
+  const sortedReports = useMemo(() => {
+    return [...reportHistory].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [reportHistory]);
 
-  // Track which region groups are expanded (default: all expanded)
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
-  // Initialize all groups as expanded on first load
-  useEffect(() => {
-    const initial: Record<string, boolean> = {};
-    Object.keys(groupedReports).forEach(city => { initial[city] = true; });
-    setExpandedGroups(initial);
-  }, [Object.keys(groupedReports).join(',')]);
-
-  const toggleGroup = (city: string) => {
-    setExpandedGroups(prev => ({ ...prev, [city]: !prev[city] }));
-  };
 
   // View state 1: Processing
   if (loading) {
@@ -1658,96 +1642,83 @@ const ReportPage = () => {
     <DashboardLayout>
       <div className="flex gap-6" dir={direction}>
         
-        {/* Historical Reports Sidebar Panel - Grouped by Region */}
-        <div className="hidden md:block w-72 flex-shrink-0 no-print">
-          <Card className="p-4 sticky top-20">
-            <h3 className="font-bold text-primary mb-4 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              {direction === 'rtl' ? 'التقارير السابقة' : 'Report History'}
-            </h3>
+        {/* Historical Reports Sidebar Panel - Flat List */}
+        <div className="hidden md:block w-80 flex-shrink-0 no-print">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 sticky top-20 overflow-hidden">
+            {/* Sidebar Header */}
+            <div className="p-4 pb-3 border-b border-gray-100 bg-gradient-to-b from-primary/[0.03] to-transparent">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-primary flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  {direction === 'rtl' ? 'التقارير السابقة' : 'Report History'}
+                </h3>
+                <span className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-1 rounded-full">
+                  {sortedReports.length}
+                </span>
+              </div>
+            </div>
             
-            {/* Scrollable grouped list organized by city/region */}
-            <div className="space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar">
-              {reportHistory.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-4">
-                  {direction === 'rtl' ? 'لا توجد تقارير سابقة' : 'No previous reports'}
-                </p>
-              )}
-              {Object.entries(groupedReports).map(([city, reports]) => {
-                const totalPositive = reports.reduce((sum, r) => sum + r.positiveCount, 0);
-                const totalNegative = reports.reduce((sum, r) => sum + r.negativeCount, 0);
-                const totalNeutral = reports.reduce((sum, r) => sum + r.neutralCount, 0);
-                const isExpanded = expandedGroups[city] !== false;
-
-                return (
-                  <div key={city} className="rounded-xl border border-gray-200 overflow-hidden">
-                    {/* Region Group Header - Clickable to toggle */}
-                    <button
-                      onClick={() => toggleGroup(city)}
-                      className="w-full flex items-center justify-between p-3 bg-gradient-to-l from-primary/5 to-transparent hover:from-primary/10 transition-all"
-                    >
-                      <div className={`flex items-center gap-2 ${direction === 'rtl' ? 'flex-row' : 'flex-row'}`}>
-                        <div className="w-8 h-8 bg-secondary/15 rounded-lg flex items-center justify-center">
-                          <MapPin className="w-4 h-4 text-secondary" />
-                        </div>
-                        <div className={`text-${direction === 'rtl' ? 'right' : 'left'}`}>
-                          <p className="font-bold text-sm text-primary truncate max-w-[120px]">{city}</p>
-                          <p className="text-[10px] text-gray-400">
-                            {reports.length} {direction === 'rtl' ? (reports.length === 1 ? 'تقرير' : 'تقارير') : (reports.length === 1 ? 'report' : 'reports')}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {/* Aggregate sentiment mini-badges */}
-                        <div className="flex gap-1">
-                          <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold">{totalPositive}</span>
-                          <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-bold">{totalNegative}</span>
-                          <span className="text-[10px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full font-bold">{totalNeutral}</span>
-                        </div>
-                        {/* Chevron indicator */}
-                        <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
-                    </button>
-
-                    {/* Expandable report items under this region */}
-                    {isExpanded && (
-                      <div className="border-t border-gray-100">
-                        {reports.map(r => (
-                          <button
-                            key={r.id}
-                            onClick={() => navigate(`/report/${r.id}`)}
-                            className={`w-full text-${direction === 'rtl' ? 'right' : 'left'} p-3 transition-all border-b border-gray-50 last:border-b-0 ${reportId === r.id
-                              ? 'bg-primary/10'
-                              : 'hover:bg-gray-50'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-xs text-green-600 font-medium">{r.positiveCount}+</span>
-                                <span className="text-xs text-red-500 font-medium">{r.negativeCount}-</span>
-                                <span className="text-xs text-yellow-600 font-medium">{r.neutralCount}~</span>
-                              </div>
-                              <p className="text-[10px] text-gray-400">
-                                {new Date(r.createdAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                            {reportId === r.id && (
-                              <div className={`mt-1.5 flex items-center gap-1 text-[10px] text-primary font-bold ${direction === 'rtl' ? 'justify-end' : 'justify-start'}`}>
-                                <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
-                                {direction === 'rtl' ? 'قيد العرض' : 'Viewing'}
-                              </div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+            {/* Scrollable list content */}
+            <div className="p-3 space-y-2 max-h-[65vh] overflow-y-auto custom-scrollbar">
+              {sortedReports.length === 0 && (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 bg-gray-100 rounded-full mx-auto mb-3 flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-gray-300" />
                   </div>
+                  <p className="text-sm text-gray-400">
+                    {direction === 'rtl' ? 'لا توجد تقارير سابقة' : 'No previous reports'}
+                  </p>
+                  <p className="text-[10px] text-gray-300 mt-1">
+                    {direction === 'rtl' ? 'ابدأ بتحليل وجهة سياحية' : 'Start by analyzing a destination'}
+                  </p>
+                </div>
+              )}
+              
+              {sortedReports.map((r) => {
+                const isActive = reportId === r.id;
+                return (
+                  <button
+                    key={r.id}
+                    onClick={() => navigate(`/report/${r.id}`)}
+                    className={`w-full text-left transition-all duration-200 border rounded-xl p-3 ${
+                      isActive 
+                        ? 'bg-primary/5 border-primary/20 shadow-sm' 
+                        : 'bg-white border-gray-100 hover:border-primary/30 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className={`flex items-center gap-3 ${direction === 'rtl' ? 'flex-row-reverse' : ''}`}>
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        isActive ? 'bg-primary/10' : 'bg-gray-50'
+                      }`}>
+                        <MapPin className={`w-4.5 h-4.5 ${isActive ? 'text-primary' : 'text-gray-400'}`} />
+                      </div>
+                      
+                      <div className={`flex-1 min-w-0 text-${direction === 'rtl' ? 'right' : 'left'}`}>
+                        <h4 className={`font-bold text-sm truncate ${isActive ? 'text-primary' : 'text-gray-800'}`}>
+                          {r.city}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="flex gap-1">
+                            <span className="text-[9px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded font-bold border border-green-100/50">+{r.positiveCount}</span>
+                            <span className="text-[9px] bg-red-50 text-red-500 px-1.5 py-0.5 rounded font-bold border border-red-100/50">-{r.negativeCount}</span>
+                          </div>
+                          <span className="text-[10px] text-gray-400">
+                            {new Date(r.createdAt).toLocaleDateString(direction === 'rtl' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {isActive && (
+                        <div className="flex-shrink-0">
+                          <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                        </div>
+                      )}
+                    </div>
+                  </button>
                 );
               })}
             </div>
-          </Card>
+          </div>
         </div>
 
         {/* Main Printable Context Wrapper */}
@@ -1782,6 +1753,8 @@ const ReportPage = () => {
                 <p className="text-sm text-gray-500">{t('lastUpdate')}: {analysisData.timestamp}</p>
               </div>
             </div>
+
+            <ReportAIChat reportData={analysisData} direction={direction} />
 
             {/* Top-Level Summary Analytics Block */}
             <div className="mb-8">
@@ -2009,6 +1982,7 @@ const App: React.FC = () => {
             <Route path="/dashboard/:id" element={<DashboardPage />} />
             <Route path="/report" element={<ReportPage />} />
             <Route path="/report/:id" element={<ReportPage />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/about" element={<AboutPage />} />
           </Routes>
         </AuthProvider>

@@ -1,1 +1,24 @@
-node_modules
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# .NET build artifacts
+SmartTourism.API/bin/
+SmartTourism.API/obj/
+
+# Python
+SmartTourism.ML/venv/
+SmartTourism.ML/__pycache__/
+*.pyc
+
+# Logs
+*.log
+
+# Database (optional - remove if you want to track it)
+# SmartTourism.API/SmartTourism.db
+
+# OS files
+.DS_Store
+Thumbs.db
