@@ -1,11 +1,18 @@
-import { CityAnalysisData } from '../types';
+// ===================================================================
+// aiChatService.ts
+// Handles all communication between the React frontend and the
+// ASP.NET Core backend's AI endpoint, which relays requests to Gemini.
+// ===================================================================
+import { CityAnalysisData } from '../types'; // Type for city report data
 
+// Backend endpoint that proxies requests to Google Gemini
 const BACKEND_AI_URL = 'http://localhost:5165/api/ai/chat';
 
+// Shape of the response returned by the backend AI endpoint
 export interface ChatResponse {
-  message: string;
-  success: boolean;
-  error?: string;
+  message: string;   // AI-generated text response
+  success: boolean;  // Whether the request succeeded
+  error?: string;    // Optional error detail
 }
 
 /**
@@ -19,14 +26,18 @@ export async function askAiAssistant(
   userQuestion: string | null
 ): Promise<ChatResponse> {
   
+  // Guard: cannot analyze without report data
   if (!reportData) {
     return { success: false, message: "لا توجد بيانات تقرير لتقديم المشورة." };
   }
 
+  // Pre-calculate percentages and extract top 15 keywords for the prompt
   const positivePct = (reportData.stats.positiveCount / reportData.stats.totalReviews) * 100;
   const negativePct = (reportData.stats.negativeCount / reportData.stats.totalReviews) * 100;
   const keywordsStr = reportData.topWords.map(k => k.text).slice(0, 15).join("، ");
 
+  // Build the structured payload sent to the backend
+  // If userQuestion is null, Gemini generates an opening summary
   const payload = {
     CityName: reportData.cityName || "الوجهة السياحية",
     TotalReviews: reportData.stats.totalReviews,
@@ -47,6 +58,7 @@ export async function askAiAssistant(
 
     const data = await response.json();
     
+    // Handle non-2xx HTTP responses from the backend
     if (!response.ok) {
         return { 
           success: false, 
@@ -58,6 +70,7 @@ export async function askAiAssistant(
     return { success: true, message: data.message };
 
   } catch (err: any) {
+    // Network-level failure (e.g. backend is offline)
     console.error("Backend AI Communication Error:", err);
     return { 
         success: false, 

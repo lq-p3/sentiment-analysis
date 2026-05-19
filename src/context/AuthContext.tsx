@@ -17,6 +17,8 @@ interface AuthContextType {
     login: (email: string, password: string) => Promise<void>; 
     register: (user: Omit<User, 'id'>) => Promise<void>;
     resetPassword: (email: string, newPassword: string) => Promise<void>;
+    checkEmail: (email: string) => Promise<boolean>;
+    verifyOtp: (email: string, code: string) => Promise<boolean>;
     logout: () => void;
     isLoading: boolean; // Indicates active background network resolution (e.g., verifying tokens) to prevent race conditions.
 }
@@ -169,6 +171,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     /**
+     * Check Email Endpoint
+     * Checks if the email exists in the database for password reset flow.
+     */
+    const checkEmail = async (email: string): Promise<boolean> => {
+        setIsLoading(true);
+        try {
+            const response = await fetch(`${API_URL}/check-email`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error('البريد الإلكتروني غير مسجل لدينا');
+                }
+                throw new Error('حدث خطأ أثناء التحقق من البريد الإلكتروني');
+            }
+            return true;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    /**
+     * Verify OTP Endpoint
+     */
+    const verifyOtp = async (email: string, code: string): Promise<boolean> => {
+        setIsLoading(true);
+        try {
+            const response = await fetch(`${API_URL}/verify-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, code }),
+            });
+
+            if (!response.ok) {
+                throw new Error('رمز التحقق غير صحيح أو منتهي الصلاحية');
+            }
+            return true;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    /**
      * Session Termination Endpoint
      * Purges the local React object state tracking the active user identity
      * and absolutely destroys the underlying JWT payload stored locally to sever system access.
@@ -180,7 +232,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return (
         // Broadcast all aggregated internal functions and states through the overarching Provider pipeline
-        <AuthContext.Provider value={{ user, login, register, resetPassword, logout, isLoading }}>
+        <AuthContext.Provider value={{ user, login, register, resetPassword, checkEmail, verifyOtp, logout, isLoading }}>
             {children}
         </AuthContext.Provider>
     );

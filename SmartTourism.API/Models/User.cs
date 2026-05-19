@@ -1,4 +1,7 @@
-// جدول المستخدمين في قاعدة البيانات
+// ===================================================================
+// User.cs — EF Core entity mapped to the "Users" SQLite table.
+// Passwords are never stored in plain text — only BCrypt hashes.
+// ===================================================================
 using System.ComponentModel.DataAnnotations;
 
 namespace SmartTourism.API.Models
@@ -6,7 +9,7 @@ namespace SmartTourism.API.Models
     public class User
     {
         [Key]
-        public Guid Id { get; set; } = Guid.NewGuid(); // معرف فريد تلقائي
+        public Guid Id { get; set; } = Guid.NewGuid(); // Auto-generated unique identifier
 
         [Required]
         [MaxLength(50)]
@@ -19,21 +22,22 @@ namespace SmartTourism.API.Models
         [Required]
         [EmailAddress]
         [MaxLength(100)]
-        public string Email { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty; // Unique index enforced in AppDbContext
 
         [Required]
-        public string PasswordHash { get; set; } = string.Empty; // كلمة المرور مشفرة بـ BCrypt
+        public string PasswordHash { get; set; } = string.Empty; // BCrypt hash — never the plain password
 
         [Required]
-        public string Role { get; set; } = "user"; // user أو admin
+        public string Role { get; set; } = "user"; // "user" or "admin"
 
-        public string? ResetPasswordToken { get; set; } // لإعادة تعيين الباسورد
-        
+        public string? ResetPasswordToken { get; set; }      // Legacy field (OTP replaced token-based reset)
+
         public DateTime? ResetPasswordTokenExpiry { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // علاقة: كل مستخدم عنده عدة تقارير
+        // One-to-many: a user can own multiple reports
         public ICollection<Report> Reports { get; set; } = new List<Report>();
     }
 }
+

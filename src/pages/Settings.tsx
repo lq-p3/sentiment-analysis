@@ -1,21 +1,27 @@
+// ===================================================================
+// Settings.tsx
+// System settings page — allows users to enable/disable the Gemini
+// AI assistant. The preference is persisted in localStorage.
+// ===================================================================
 import React, { useState, useEffect } from 'react';
-import { useLanguage } from '../context/LanguageContext';
-import { Settings as SettingsIcon, Save, Bot, Power } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext'; // Provides text direction (RTL/LTR)
+import { Settings as SettingsIcon, Save, Bot, Power } from 'lucide-react'; // UI icons
 
 export const Settings: React.FC = () => {
   const { direction } = useLanguage();
   
-  const [aiEnabled, setAiEnabled] = useState(true);
-  const [saved, setSaved] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(true); // Whether the AI assistant is active
+  const [saved, setSaved] = useState(false);         // Controls the "Saved!" feedback message
 
+  // On mount: read the saved AI preference from localStorage
   useEffect(() => {
-    // Load from localStorage
     const savedEnabled = localStorage.getItem('aiEnabled');
     if (savedEnabled !== null) {
       setAiEnabled(savedEnabled === 'true');
     }
   }, []);
 
+  // Persists the current toggle state to localStorage and shows a 3-second success message
   const handleSave = () => {
     localStorage.setItem('aiEnabled', String(aiEnabled));
     setSaved(true);
@@ -58,6 +64,7 @@ export const Settings: React.FC = () => {
                 <p className="text-xs text-gray-500">السماح للمساعد بتقديم استنتاجات ودردشة فورية وآمنة داخل التقارير.</p>
               </div>
             </div>
+            {/* Toggle button — switches AI on/off; knob position adapts to RTL/LTR */}
             <button 
               onClick={() => setAiEnabled(!aiEnabled)}
               className={`w-12 h-6 rounded-full transition-colors relative ${aiEnabled ? 'bg-primary' : 'bg-gray-300'}`}
@@ -68,6 +75,7 @@ export const Settings: React.FC = () => {
 
           {/* Actions */}
           <div className="pt-4 border-t border-gray-100 flex justify-end">
+            {/* Save button — label changes to confirmation text for 3 seconds after saving */}
             <button 
               onClick={handleSave}
               className="px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 flex items-center gap-2 shadow-sm font-semibold transition-all"

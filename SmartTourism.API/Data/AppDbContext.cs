@@ -1,4 +1,8 @@
-// ربط قاعدة البيانات SQLite وتعريف الجداول والعلاقات
+// ===================================================================
+// AppDbContext.cs — Entity Framework Core database context.
+// Defines the three database tables and enforces unique indexes
+// for deduplication (email uniqueness, report key uniqueness).
+// ===================================================================
 using Microsoft.EntityFrameworkCore;
 using SmartTourism.API.Models;
 
@@ -10,7 +14,7 @@ namespace SmartTourism.API.Data
         {
         }
 
-        // الجداول الثلاثة
+        // The three main database tables
         public DbSet<User> Users { get; set; }
         public DbSet<Report> Reports { get; set; }
         public DbSet<Review> Reviews { get; set; }
@@ -19,25 +23,28 @@ namespace SmartTourism.API.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // الإيميل لازم يكون فريد (ما يتكرر)
+            // Enforce unique emails — prevents duplicate user accounts
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
 
-            // كل مستخدم ما يقدر يكرر نفس التقرير
+            // Enforce unique (UserId + ReportKey) — prevents duplicate report analyses
             modelBuilder.Entity<Report>()
                 .HasIndex(r => new { r.UserId, r.ReportKey })
                 .IsUnique();
 
+            // Index on UserId for fast report lookups per user
             modelBuilder.Entity<Report>()
                 .HasIndex(r => r.UserId);
 
-            // فهرس على هاش التقييم لتسريع البحث عن التكرارات
+            // Index on ReviewHash for fast duplicate review detection
             modelBuilder.Entity<Review>()
                 .HasIndex(r => r.ReviewHash);
 
+            // Index on ReportId for fast review lookups per report
             modelBuilder.Entity<Review>()
                 .HasIndex(r => r.ReportId);
         }
     }
 }
+

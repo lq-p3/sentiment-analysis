@@ -1,13 +1,18 @@
-// متحكم التقارير - إنشاء وجلب تقارير تحليل المشاعر
-// يتواصل مع سيرفر Python للتحليل ويحفظ النتائج في قاعدة البيانات
+// ===================================================================
+// ReportsController.cs
+// Manages the full report lifecycle: generation, retrieval, and caching.
+// Communicates with the Python ML microservice (FastAPI on port 8000)
+// to run sentiment analysis, then persists results in SQLite.
+// Route base: /api/reports  |  All endpoints require a valid JWT.
+// ===================================================================
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using SmartTourism.API.Data;
-using SmartTourism.API.DTOs;
-using SmartTourism.API.Models;
+using SmartTourism.API.Data;    // AppDbContext
+using SmartTourism.API.DTOs;    // GenerateReportDto, ReportDetailDto, ReportSummaryDto
+using SmartTourism.API.Models;  // Report, Review
 using System.Security.Claims;
-using System.Security.Cryptography;
+using System.Security.Cryptography; // SHA256 for deduplication keys
 using System.Text;
 using System.Text.Json;
 
@@ -15,12 +20,12 @@ namespace SmartTourism.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize] // كل الطلبات تحتاج توكن
+    [Authorize] // All endpoints in this controller require a valid JWT token
     public class ReportsController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly IHttpClientFactory _httpClientFactory;
-        private const string CurrentModelVersion = "v1.0";
+        private readonly IHttpClientFactory _httpClientFactory; // Used to call the Python ML service
+        private const string CurrentModelVersion = "v1.0";     // Embedded in the report key to invalidate cache on model updates
 
         public ReportsController(AppDbContext context, IHttpClientFactory httpClientFactory)
         {
@@ -28,14 +33,15 @@ namespace SmartTourism.API.Controllers
             _httpClientFactory = httpClientFactory;
         }
 
-        // نجيب معرف المستخدم من التوكن
+        // Extracts the authenticated user's GUID from the JWT NameIdentifier claim
         private Guid GetUserId()
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             return Guid.Parse(userId!);
         }
 
-        // نحسب مفتاح فريد للتقرير باستخدام SHA256 لمنع التكرار
+        // Computes a deterministic SHA256 key for a report to prevent duplicate analysis
+        // Key factors: userId, city (lowercase), sorted sources, date range, model version
         private static string ComputeReportKey(Guid userId, string city, List<string> sources, DateTime dateFrom, DateTime dateTo)
         {
             var sortedSources = sources.OrderBy(s => s).ToList();
@@ -44,7 +50,7 @@ namespace SmartTourism.API.Controllers
             return Convert.ToHexString(hash).ToLowerInvariant();
         }
 
-        // نحسب هاش للتقييم لمنع تكرار نفس التقييم
+        // Computes a SHA256 hash per review (source + placeId + text) to avoid saving duplicates
         private static string ComputeReviewHash(string source, string? placeId, string reviewText)
         {
             var payload = $"{source}|{placeId ?? ""}|{reviewText}";
@@ -52,14 +58,16 @@ namespace SmartTourism.API.Controllers
             return Convert.ToHexString(hash).ToLowerInvariant();
         }
 
-        // POST /api/reports/generate - إنشاء تقرير جديد
+        // POST /api/reports/generate
+        // Generates a new sentiment analysis report for a given city.
+        // Returns a cached result if an identical report already exists.
         [HttpPost("generate")]
         public async Task<IActionResult> Generate([FromBody] GenerateReportDto dto)
         {
             var userId = GetUserId();
             var reportKey = ComputeReportKey(userId, dto.City, dto.Sources, dto.DateFrom, dto.DateTo);
 
-            // لو نفس التقرير موجود مسبقاً نرجعه بدل ما نعيد التحليل
+            // Return existing completed report if the same parameters were already analyzed (cache hit)
             var existing = await _context.Reports
                 .FirstOrDefaultAsync(r => r.UserId == userId && r.ReportKey == reportKey && r.Status == "Completed");
 
@@ -68,7 +76,7 @@ namespace SmartTourism.API.Controllers
                 return Ok(MapToDetail(existing));
             }
 
-            // ننشئ تقرير جديد بحالة Processing
+            // Create a new report record with "Processing" status before calling the ML service
             var report = new Report
             {
                 UserId = userId,
@@ -87,9 +95,9 @@ namespace SmartTourism.API.Controllers
 
             try
             {
-                // نرسل الطلب لسيرفر Python للتحليل
+                // Call the Python FastAPI microservice to scrape and analyze reviews
                 var client = _httpClientFactory.CreateClient();
-                client.Timeout = TimeSpan.FromMinutes(10); // السحب ممكن يأخذ وقت
+                client.Timeout = TimeSpan.FromMinutes(10); // Scraping can be slow; allow up to 10 minutes
                 var requestBody = new
                 {
                     place_name = dto.City,
@@ -105,13 +113,13 @@ namespace SmartTourism.API.Controllers
                     throw new Exception("Python ML service returned error: " + response.StatusCode);
                 }
 
-                // نقرأ النتائج من Python
+                // Deserialize the Python service response into strongly-typed records
                 var jsonStr = await response.Content.ReadAsStringAsync();
                 var pythonResponse = JsonSerializer.Deserialize<PythonAnalyzeResponse>(jsonStr, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 
                 var mlReviews = pythonResponse?.reviews ?? new List<PythonReviewData>();
 
-                // نحفظ التقييمات على دفعات (كل 20 تقييم)
+                // Save reviews in batches of 20 to avoid memory pressure on large datasets
                 var reviewEntities = new List<Review>();
                 foreach (var batch in mlReviews.Chunk(20))
                 {
@@ -119,7 +127,7 @@ namespace SmartTourism.API.Controllers
                     {
                         var reviewHash = ComputeReviewHash(mr.source, mr.place_id, mr.text);
 
-                        // نتحقق هل التقييم محلل من قبل
+                        // Re-use an already-analyzed review's label/score to avoid redundant ML calls
                         var existingReview = await _context.Reviews
                             .FirstOrDefaultAsync(r => r.ReviewHash == reviewHash && r.PredictedLabel != "");
 
@@ -146,7 +154,7 @@ namespace SmartTourism.API.Controllers
                     await _context.SaveChangesAsync();
                 }
 
-                // نحسب الإحصائيات
+                // Calculate aggregate sentiment statistics
                 var positiveCount = reviewEntities.Count(r => r.PredictedLabel == "Positive");
                 var negativeCount = reviewEntities.Count(r => r.PredictedLabel == "Negative");
                 var neutralCount = reviewEntities.Count(r => r.PredictedLabel == "Neutral");
@@ -157,7 +165,7 @@ namespace SmartTourism.API.Controllers
                 report.NegativeCount = negativeCount;
                 report.NeutralCount = neutralCount;
 
-                // نحسب النسب المئوية
+                // Compute percentage breakdown for pie chart rendering on the frontend
                 var sentimentPct = new
                 {
                     positive = total > 0 ? Math.Round(positiveCount * 100.0 / total, 1) : 0,
@@ -166,7 +174,7 @@ namespace SmartTourism.API.Controllers
                 };
                 report.SentimentPercentagesJson = JsonSerializer.Serialize(sentimentPct);
 
-                // نجمع أكثر الكلمات تكراراً من كل التقييمات
+                // Aggregate the top 15 most frequent keywords across all reviews for the word cloud
                 var allKeywords = reviewEntities
                     .Where(r => r.KeywordsJson != null)
                     .SelectMany(r => JsonSerializer.Deserialize<List<string>>(r.KeywordsJson!) ?? new())
@@ -177,7 +185,7 @@ namespace SmartTourism.API.Controllers
                     .ToList();
                 report.KeywordsTopJson = JsonSerializer.Serialize(allKeywords);
 
-                // نبني JSON كامل للتقرير عشان الواجهة تعرضه مباشرة
+                // Build a self-contained JSON snapshot of the report for direct frontend rendering
                 var reportSnapshot = new
                 {
                     cityName = report.City,
@@ -211,7 +219,7 @@ namespace SmartTourism.API.Controllers
             }
             catch (Exception)
             {
-                // لو فشل التحليل نغير الحالة لـ Failed
+                // Mark the report as Failed so the frontend can display an error state
                 report.Status = "Failed";
                 report.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
@@ -219,7 +227,8 @@ namespace SmartTourism.API.Controllers
             }
         }
 
-        // GET /api/reports - جلب كل تقارير المستخدم
+        // GET /api/reports
+        // Returns a paginated list of the authenticated user's reports (newest first)
         [HttpGet]
         public async Task<IActionResult> GetReports([FromQuery] int limit = 20)
         {
@@ -248,7 +257,8 @@ namespace SmartTourism.API.Controllers
             return Ok(reports);
         }
 
-        // GET /api/reports/latest - جلب آخر تقرير مكتمل
+        // GET /api/reports/latest
+        // Returns the most recently completed report for the current user
         [HttpGet("latest")]
         public async Task<IActionResult> GetLatest()
         {
@@ -264,7 +274,8 @@ namespace SmartTourism.API.Controllers
             return Ok(MapToDetail(report));
         }
 
-        // GET /api/reports/{id} - جلب تقرير محدد
+        // GET /api/reports/{id}
+        // Returns a specific report by GUID — only if it belongs to the current user
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -278,7 +289,7 @@ namespace SmartTourism.API.Controllers
             return Ok(MapToDetail(report));
         }
 
-        // تحويل Report إلى ReportDetailDto
+        // Maps a Report entity to the DTO returned by all GET endpoints
         private static ReportDetailDto MapToDetail(Report r)
         {
             return new ReportDetailDto
@@ -300,7 +311,7 @@ namespace SmartTourism.API.Controllers
             };
         }
 
-        // أنواع البيانات القادمة من سيرفر Python
+        // Strongly-typed records matching the JSON shape returned by the Python ML service
         private record PythonReviewData(string source, string text, string language, double? rating, string place_id, string predicted_label, double score, List<string> keywords, DateTime? original_date);
         
         private record PythonAnalyzeResponse(List<PythonReviewData> reviews);

@@ -1,7 +1,14 @@
+// ===================================================================
+// GoogleGeminiService.cs
+// Communicates with the Google Gemini REST API to generate AI responses
+// for the tourism report chat assistant.
+// Features a fallback model chain with retry + exponential backoff to
+// handle rate-limiting (HTTP 429) and service unavailability (HTTP 503).
+// ===================================================================
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using SmartTourism.API.DTOs;
+using SmartTourism.API.DTOs; // AiChatRequestDto / AiChatResponseDto
 
 namespace SmartTourism.API.Services
 {
@@ -29,8 +36,9 @@ namespace SmartTourism.API.Services
 
         public async Task<AiChatResponseDto> GenerateChatResponseAsync(AiChatRequestDto request)
         {
-            var apiKey = _configuration["GeminiApiKey"];
+            var apiKey = _configuration["GeminiApiKey"]; // Read from appsettings.json
             
+            // Abort early if the Gemini API key is not configured on the server
             if (string.IsNullOrWhiteSpace(apiKey))
             {
                 return new AiChatResponseDto 
@@ -41,6 +49,7 @@ namespace SmartTourism.API.Services
                 };
             }
 
+            // Build a structured Arabic system prompt injecting the report's key statistics
             var systemPrompt = $@"
 أنت مستشار سياحي ذكي وخبير في تحليل البيانات الخاصة بالمملكة العربية السعودية. إجابتك بالعربية الفصحى ومختصرة جداً وصارمة بناءً على البيانات فقط.
 --- السياق لمدينة: {request.CityName} ---
@@ -51,12 +60,14 @@ namespace SmartTourism.API.Services
 ------------------------------
 ";
 
+            // If no user question is provided, ask Gemini for an opening 3-line summary
             var userInstruction = string.IsNullOrWhiteSpace(request.UserQuestion) 
                 ? "اكتب ملخصاً استنتاجياً سريعاً في 3 أسطر فقط."
                 : $"أجب على السؤال: '{request.UserQuestion}'";
 
             var fullPrompt = $"{systemPrompt}\n{userInstruction}";
 
+            // Low temperature (0.2) keeps responses factual and deterministic
             var payload = new
             {
                 contents = new[]
@@ -139,6 +150,7 @@ namespace SmartTourism.API.Services
                             };
                         }
 
+                        // Parse the Gemini response and extract the generated text
                         using var jsonDoc = JsonDocument.Parse(responseString);
                         var root = jsonDoc.RootElement;
                         

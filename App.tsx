@@ -697,33 +697,60 @@ const SignupPage = () => {
 
 /**
  * Forgot Password Page Component
- * Utility page allowing users to reset their lost passwords.
- * Renders a success/error message unconditionally to provide immediate feedback after submission.
+ * Multi-step utility page allowing users to reset their lost passwords.
+ * Step 1: Verify Email exists
+ * Step 2: Input OTP
+ * Step 3: Input New Password
  */
 const ForgotPasswordPage = () => {
   const navigate = useNavigate();
   const { t, direction } = useLanguage();
   
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
   const [newPassword, setNewPassword] = useState('');
   
-  // Advanced state object capable of differentiating between success, error, and informational states.
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' | 'info' } | null>(null);
 
-  const { resetPassword, isLoading } = useAuth();
+  const { resetPassword, checkEmail, verifyOtp, isLoading } = useAuth();
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  /**
-   * Evaluates the reset async request. If successful, delays a 3-second redirect
-   * using setTimeout before bouncing the user back to the LoginPage.
-   */
-  const handleReset = async (e: React.FormEvent) => {
+  const handleCheckEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage(null); // Clear previous UI message traces
+    setMessage(null);
+    try {
+      await checkEmail(email);
+      setMessage({ text: 'تم إرسال رمز التحقق إلى بريدك الإلكتروني', type: 'success' });
+      setStep(2);
+    } catch (error: any) {
+      setMessage({ text: error.message || 'Error checking email', type: 'error' });
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = otp.join('');
+    if (code.length !== 6) {
+      setMessage({ text: 'الرمز غير صحيح أو ناقص', type: 'error' });
+      return;
+    }
+    
+    try {
+      await verifyOtp(email, code);
+      setMessage({ text: 'تم التحقق بنجاح. أدخل كلمة المرور الجديدة.', type: 'success' });
+      setStep(3);
+    } catch (error: any) {
+      setMessage({ text: error.message || 'رمز التحقق غير صحيح', type: 'error' });
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage(null);
     try {
       await resetPassword(email, newPassword);
-      // Trigger green success flag
-      setMessage({ text: t('passwordResetSuccess'), type: 'success' });
-      // Impose brief time interval before routing allows user to actually read the success box
+      setMessage({ text: t('passwordResetSuccess') || 'تم إعادة تعيين كلمة المرور بنجاح!', type: 'success' });
       setTimeout(() => {
         navigate('/');
       }, 3000);
@@ -739,43 +766,89 @@ const ForgotPasswordPage = () => {
           <Lock className="w-6 h-6 text-accent" />
         </div>
         <h2 className="text-xl font-bold text-primary mb-2">{t('forgotPassword')}</h2>
-        <p className="text-gray-500 text-sm mb-6">{t('resetPasswordInstruction')}</p>
+        <p className="text-gray-500 text-sm mb-6">
+          {step === 1 ? 'أدخل بريدك الإلكتروني المسجل وسنرسل لك رمز التحقق.' :
+           step === 2 ? 'أدخل الرمز المكون من 6 أرقام المرسل إلى بريدك.' :
+           'أدخل كلمة المرور الجديدة لحسابك.'}
+        </p>
 
-        {/* Dynamic Multi-State Banner Rendering */}
         {message && (
           <div className={`p-3 rounded-lg mb-4 text-sm text-center ${message.type === 'success' ? 'bg-green-50 text-green-600' : message.type === 'info' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-500'}`}>
             {message.text}
           </div>
         )}
 
-        <form className="space-y-4" onSubmit={handleReset}>
-          <Input
-            label={t('email')}
-            type="email"
-            placeholder="example@mail.com"
-            icon={<Mail className="w-5 h-5" />}
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
-          <Input
-            label={t('newPassword')}
-            type="password"
-            placeholder="●●●●●●●●"
-            icon={<Lock className="w-5 h-5" />}
-            value={newPassword}
-            onChange={e => setNewPassword(e.target.value)}
-            required
-            minLength={6} // Baseline frontend length enforcement
-          />
-          {/* Automatically obscure interaction while 'isLoading' is locked */}
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? '...' : t('resetPasswordButton')}
-          </Button>
-        </form>
+        {step === 1 && (
+          <form className="space-y-4" onSubmit={handleCheckEmail}>
+            <Input
+              label={t('email')}
+              type="email"
+              placeholder="example@mail.com"
+              icon={<Mail className="w-5 h-5" />}
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+            />
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? '...' : 'التحقق من البريد'}
+            </Button>
+          </form>
+        )}
+
+        {step === 2 && (
+          <form className="space-y-4" onSubmit={handleVerifyOtp}>
+            <div className="flex justify-center gap-2 mb-4" dir="ltr">
+              {otp.map((digit, index) => (
+                <input
+                  key={index}
+                  ref={el => { inputRefs.current[index] = el; }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val.length > 1) return;
+                    if (val && !/^\d$/.test(val)) return;
+                    const newOtp = [...otp];
+                    newOtp[index] = val;
+                    setOtp(newOtp);
+                    if (val && index < 5) inputRefs.current[index + 1]?.focus();
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+                      inputRefs.current[index - 1]?.focus();
+                    }
+                  }}
+                  className="w-12 h-14 text-center text-xl font-bold rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all"
+                />
+              ))}
+            </div>
+            <Button type="submit" className="w-full">
+              تأكيد الرمز
+            </Button>
+          </form>
+        )}
+
+        {step === 3 && (
+          <form className="space-y-4" onSubmit={handleResetPassword}>
+            <Input
+              label={t('newPassword')}
+              type="password"
+              placeholder="●●●●●●●●"
+              icon={<Lock className="w-5 h-5" />}
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              required
+              minLength={6}
+            />
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? '...' : t('resetPasswordButton')}
+            </Button>
+          </form>
+        )}
 
         <Link to="/" className="block mt-6 text-sm text-gray-500 hover:text-primary flex items-center justify-center gap-2">
-          {/* Directional Arrow Logic: Rotates the return arrow based on Arabic (RTL) vs English (LTR) language semantics */}
           {direction === 'rtl' ? <ArrowRight className="w-4 h-4 ml-2" /> : <ArrowRight className="w-4 h-4 mr-2 rotate-180" />}
           {t('login')}
         </Link>
@@ -793,7 +866,7 @@ const ForgotPasswordPage = () => {
 const OtpVerificationPage = () => {
   const navigate = useNavigate();
   const { t, direction } = useLanguage();
-  const { user } = useAuth();
+  const { user, verifyOtp } = useAuth();
 
   // 6-digit OTP state
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
@@ -874,7 +947,6 @@ const OtpVerificationPage = () => {
 
   /**
    * Verify OTP action handler.
-   * Currently operates as a UI-only demo — accepts any 6-digit code for testing.
    */
   const handleVerify = async () => {
     const code = otp.join('');
@@ -883,20 +955,27 @@ const OtpVerificationPage = () => {
       return;
     }
 
+    if (!user?.email) {
+      setError('لا يوجد بريد إلكتروني مسجل. يرجى تسجيل الدخول مجدداً.');
+      return;
+    }
+
     setIsVerifying(true);
     setError('');
 
-    // Simulate verification delay for UX realism
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    // Demo mode: accept any 6-digit code
-    setSuccess(true);
-    setIsVerifying(false);
-
-    // Navigate to the main app after a brief success animation
-    setTimeout(() => {
-      navigate('/city-input');
-    }, 1500);
+    try {
+      await verifyOtp(user.email, code);
+      setSuccess(true);
+      
+      // Navigate to the main app after a brief success animation
+      setTimeout(() => {
+        navigate('/city-input');
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message || 'رمز التحقق غير صحيح');
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   /**

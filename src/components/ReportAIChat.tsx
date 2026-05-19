@@ -1,14 +1,21 @@
+// ===================================================================
+// ReportAIChat.tsx
+// Floating AI chat panel linked to city report data.
+// Connects to Gemini API to auto-generate a summary and answer user questions.
+// ===================================================================
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, Loader2, AlertTriangle, X, Sparkles } from 'lucide-react';
-import { askAiAssistant } from '../services/aiChatService';
-import { CityAnalysisData } from '../types';
+import { askAiAssistant } from '../services/aiChatService'; // Service for communicating with Gemini
+import { CityAnalysisData } from '../types'; // Type definition for city report data
 
+// Represents a single chat message
 interface Message {
   id: string;
   role: 'system' | 'user' | 'assistant';
   content: string;
 }
 
+// Component props: report data + text direction (RTL/LTR)
 interface ReportAIChatProps {
   reportData: CityAnalysisData | null;
   direction?: 'ltr' | 'rtl';
@@ -24,9 +31,10 @@ export const ReportAIChat: React.FC<ReportAIChatProps> = ({ reportData, directio
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isInitialized = useRef<boolean>(false);
 
-  // Settings
+  // Check if AI assistant is enabled (persisted in localStorage)
   const aiEnabled = localStorage.getItem('aiEnabled') !== 'false';
 
+  // Auto-scroll to the latest message whenever messages update
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -35,6 +43,7 @@ export const ReportAIChat: React.FC<ReportAIChatProps> = ({ reportData, directio
     scrollToBottom();
   }, [messages, isLoading, isOpen]);
 
+  // On report load: request an initial AI summary only once (guarded by isInitialized ref)
   useEffect(() => {
     if (!aiEnabled || !reportData || isInitialized.current) {
         if (!aiEnabled) setIsLoading(false);
@@ -45,11 +54,12 @@ export const ReportAIChat: React.FC<ReportAIChatProps> = ({ reportData, directio
     generateInitialSummary();
   }, [reportData, aiEnabled]);
 
+  // Sends the full report data to Gemini and stores the AI-generated opening summary
   const generateInitialSummary = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await askAiAssistant(reportData, null);
+      const response = await askAiAssistant(reportData, null); // null = no user question, summary mode only
       if (response.success) {
         setMessages([
           { id: Date.now().toString(), role: 'assistant', content: response.message }
@@ -64,6 +74,7 @@ export const ReportAIChat: React.FC<ReportAIChatProps> = ({ reportData, directio
     }
   };
 
+  // Handles user message submission: appends message instantly, then awaits Gemini's response
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;

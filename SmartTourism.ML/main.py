@@ -1,4 +1,5 @@
 # AI Server -- Scrapes Google Maps reviews and runs sentiment analysis
+# Model: whrivt/camelbert-saudi-gmaps-sentiment (Fine-tuned CAMeLBERT for Saudi dialect)
 import time
 import re
 import pandas as pd
@@ -43,64 +44,74 @@ class AnalyzeResponse(BaseModel):
     reviews: List[ReviewData]
 
 # ===== Text Preprocessing =====
+# Aligned with the fine-tuned model's 5-stage training pipeline
+
+# Match HTML tags (e.g. <br>, <div>)
+HTML_TAG_RE = re.compile(r"<[^>]+>")
 
 # Match URLs (e.g. https://example.com)
 URL_RE = re.compile(r"(https?://\S+|www\.\S+)", re.IGNORECASE)
 
+# Match @ mentions (e.g. @username)
+MENTION_RE = re.compile(r"@\w+")
+
 # Match multiple whitespace characters (spaces, tabs, newlines)
 MULTI_SPACE_RE = re.compile(r"\s+")
 
-# Match الكشيدة (tatweel ـــ) - used for stretching Arabic words visually
-KASHIDA_RE = re.compile(r"\u0640+")
+# Match التشكيل  (diacritics + tatweel)
+TASHKEEL_RE = re.compile(r"[\u0617-\u061A\u064B-\u0652\u0670\u0640]")
 
-# Match التشكيل (الفتحة، الضمة، الكسرة، السكون، الشدة، التنوين)
-TASHKEEL_RE = re.compile(r"[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]")
-
-# Match repeated characters 3+ times (e.g. "جميييييل" or "روووعة")
+# Match repeated characters 3+ times (e.g. "راااائع" → "رائع")
 REPEATED_CHAR_RE = re.compile(r"(.)\1{2,}")
 
 
 def normalize_arabic_light(text: str) -> str:
     """
-    Light normalization for Arabic text:
-    - Remove التشكيل (diacritics)
-    - Remove الكشيدة (tatweel)
-    - Unify أ/إ/آ into ا (all hamza forms become plain alef)
-    - Unify ى into ي (alef maqsura becomes ya)
+    Saudi-dialect normalization aligned with the fine-tuned model's training:
+    - Remove التشكيل والكشيدة (diacritics + tatweel)
+    - Unify أ/إ/آ into ا (alef normalization)
+    - Unify ى into ي (ya normalization)
+    - Normalize ة into ه (ta-marbuta → ha) — Saudi dialect convention
     """
 
-    # Remove التشكيل like الفتحة (َ) والضمة (ُ) والكسرة (ِ) والشدة (ّ) والسكون (ْ)
+    # Remove التشكيل والكشيدة
     text = TASHKEEL_RE.sub("", text)
 
-    # Remove الكشيدة (ـ) used to stretch words like "مطعـــم"
-    text = KASHIDA_RE.sub("", text)
-
     # Unify همزة الألف: أ، إ، آ all become ا
-    text = text.replace("\u0623", "\u0627").replace("\u0625", "\u0627").replace("\u0622", "\u0627")
+    text = re.sub(r"[إأآا]", "ا", text)
 
     # Unify الألف المقصورة: ى becomes ي
     text = text.replace("\u0649", "\u064a")
+
+    # Normalize التاء المربوطة: ة becomes ه (Saudi dialect convention)
+    text = text.replace("\u0629", "\u0647")
 
     return text
 
 
 def preprocess_for_camelbert(text: str) -> str:
     """
-    Clean a Google Maps review text before passing it to CAMeLBERT.
-    Keeps emojis (useful sentiment signals) and removes noise.
+    Clean a Google Maps review text before passing it to the fine-tuned CAMeLBERT.
+    Matches the exact preprocessing used during model training (5-stage pipeline).
     """
 
     # Make sure input is a string
     text = str(text)
 
+    # Remove HTML tags that may appear in scraped reviews
+    text = HTML_TAG_RE.sub(" ", text)
+
     # Remove any URLs that may appear in reviews
     text = URL_RE.sub(" ", text)
 
-    # Apply Arabic character normalization (التشكيل، الكشيدة، توحيد الهمزات)
+    # Remove @ mentions
+    text = MENTION_RE.sub(" ", text)
+
+    # Apply Arabic character normalization (التشكيل، الكشيدة، توحيد الهمزات، التاء المربوطة)
     text = normalize_arabic_light(text)
 
-    # Reduce repeated characters to max 2 (e.g. "جميييييل" becomes "جمييل", "روووعة" becomes "روعة")
-    text = REPEATED_CHAR_RE.sub(r"\1\1", text)
+    # Reduce repeated characters to single (e.g. "راااائع" → "رائع", "جميييييل" → "جميل")
+    text = REPEATED_CHAR_RE.sub(r"\1", text)
 
     # Collapse multiple spaces into one and strip edges
     text = MULTI_SPACE_RE.sub(" ", text).strip()
@@ -146,7 +157,7 @@ def extract_keywords(text: str) -> List[str]:
         "\u0643\u0627\u0646", "\u0643\u0627\u0646\u062a",           # كان، كانت
         "\u0648", "\u0623\u0648", "\u0648\u0644\u0643\u0646",       # و، أو، ولكن
         "\u0623\u064a\u0636\u0627",                                 # أيضا
-    }
+    }   
 
     # Split text into individual words
     words = text.split()
@@ -361,10 +372,10 @@ def scrape_reviews(place_name: str, max_reviews: int = 150, lang: str = "ar"):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global clf
-    print("Loading CAMeLBERT model...")
-    MODEL_NAME = "CAMeL-Lab/bert-base-arabic-camelbert-da-sentiment"
-    clf = pipeline(task="sentiment-analysis", model=MODEL_NAME)
-    print("Model loaded successfully.")
+    print("Loading fine-tuned CAMeLBERT Saudi sentiment model...")
+    MODEL_NAME = "whrivt/camelbert-saudi-gmaps-sentiment"
+    clf = pipeline(task="text-classification", model=MODEL_NAME)
+    print(f"Model '{MODEL_NAME}' loaded successfully.")
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -390,11 +401,10 @@ async def analyze(req: AnalyzeRequest):
         if not cleaned_text:
             continue
 
-        # Run CAMeLBERT sentiment prediction
+        # Run fine-tuned CAMeLBERT sentiment prediction
         pred = clf(cleaned_text, truncation=True, max_length=512)[0]
-        label = pred["label"].capitalize()
-        if label == "Mixed":
-            label = "Neutral"
+        # Model outputs: positive, negative, neutral (lowercase)
+        label = pred["label"].capitalize()  # → Positive, Negative, Neutral
 
         score = pred["score"]
 
