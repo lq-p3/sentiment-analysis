@@ -11,7 +11,7 @@
  */
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { HashRouter, Routes, Route, useNavigate, Link, useLocation, useParams } from 'react-router-dom'; // Routing library for SPA (Single Page Application) navigation
-import { generateReport, getReports, getLatestReport, getReportById, type ReportSummary, type ReportDetail } from './src/services/reportApi'; // Backend API Services
+import { generateReport, getReports, getLatestReport, getReportById, type ReportSummary, type ReportDetail } from './services/reportApi'; // Backend API Services
 import {
   User, Lock, Mail, Eye, ArrowRight, MapPin,
   Search, FileText, Download, RefreshCw,
@@ -23,11 +23,11 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from 'recharts'; // Charting Library for Sentiment visualization
 import * as d3 from 'd3'; // D3 Object for generating Word Cloud mathematics and positioning
-import { LanguageProvider, useLanguage } from './src/context/LanguageContext'; // React Context for Bilingual State
-import { AuthProvider, useAuth } from './src/context/AuthContext'; // React Context for User Authentication State
-import { LanguageSwitcher } from './src/components/LanguageSwitcher';
-import { ReportAIChat } from './src/components/ReportAIChat';
-import Settings from './src/pages/Settings';
+import { LanguageProvider, useLanguage } from './context/LanguageContext'; // React Context for Bilingual State
+import { AuthProvider, useAuth } from './context/AuthContext'; // React Context for User Authentication State
+import { LanguageSwitcher } from './components/LanguageSwitcher';
+import { ReportAIChat } from './components/ReportAIChat';
+import Settings from './pages/Settings';
 // ======================================================================
 // 1. TYPE DEFINITIONS & IMPORTS
 // ======================================================================
@@ -38,7 +38,7 @@ import {
   AnalysisStats,
   WordFreq,
   CityAnalysisData
-} from './src/types';
+} from './types';
 
 // ======================================================================
 // 2. REUSABLE UI COMPONENTS (Design System)
