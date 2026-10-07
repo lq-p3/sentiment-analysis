@@ -1,4 +1,12 @@
-# Touralyze
+<h1 align="center">Touralyze</h1>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/React-19-20232A?logo=react&logoColor=61DAFB" alt="React 19"/>
+  <img src="https://img.shields.io/badge/ASP.NET_Core-8-512BD4?logo=dotnet&logoColor=white" alt="ASP.NET Core 8"/>
+  <img src="https://img.shields.io/badge/FastAPI-Python-009688?logo=fastapi&logoColor=white" alt="FastAPI"/>
+  <img src="https://img.shields.io/badge/Model-CAMeLBERT-FFD21E?logo=huggingface&logoColor=black" alt="CAMeLBERT"/>
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License"/>
+</p>
 
 Touralyze is a smart tourism sentiment analysis platform designed to analyze Arabic tourism reviews and provide meaningful insights through sentiment analysis and interactive visualizations.
 
@@ -45,14 +53,11 @@ The tourism and hospitality sector relies heavily on customer feedback to evalua
 
 ## Screenshots
 
-### Dashboard
-<!-- Add dashboard screenshot here -->
-
-### Sentiment Analysis
-<!-- Add sentiment analysis screenshot here -->
-
-### AI Assistant & Reports
-<!-- Add AI assistant and reports screenshot here -->
+<!-- Add screenshots to docs/screenshots/ and reference them here, e.g.:
+![Dashboard](docs/screenshots/dashboard.png)
+![Sentiment analysis](docs/screenshots/sentiment.png)
+![AI assistant & reports](docs/screenshots/ai-assistant.png)
+-->
 
 ---
 
@@ -132,15 +137,18 @@ flowchart TD
 ## Project Structure
 
 ```text
-smart-tourism-sentiment-analyzer/
-├── App.tsx                      # Root application layout, pages, and routes
+sentiment-analysis/
 ├── index.html                   # HTML entrypoint
 ├── package.json                 # Frontend dependencies and scripts
 ├── vite.config.ts               # Vite configuration
+├── public/                      # Static assets (logo)
 ├── src/
+│   ├── App.tsx                  # Root application layout, pages, and routes
+│   ├── index.tsx                # React bootstrap
+│   ├── index.css                # Global styles
 │   ├── components/              # Shared UI components (LanguageSwitcher, ReportAIChat)
 │   ├── context/                 # State providers (AuthContext, LanguageContext)
-│   ├── pages/                   # Application pages (Settings, Dashboard views)
+│   ├── pages/                   # Application pages (Settings)
 │   ├── services/                # API integration services (reportApi, aiChatService)
 │   ├── translations/            # Bilingual translation dictionaries (ar.ts, en.ts)
 │   ├── types.ts                 # TypeScript type definitions and data contracts
@@ -149,6 +157,7 @@ smart-tourism-sentiment-analyzer/
 │   ├── Controllers/             # API Controllers (AiController, AuthController, ReportsController)
 │   ├── Data/                    # AppDbContext and database configurations
 │   ├── DTOs/                    # Data Transfer Objects
+│   ├── Migrations/              # EF Core migrations
 │   ├── Models/                  # Entity models (User, Report, Review)
 │   ├── Services/                # Core services (GoogleGeminiService, EmailService)
 │   ├── Program.cs               # Service registration and middleware pipeline
@@ -277,11 +286,10 @@ npm run dev
 
 ## Author
 
-**Ali Alqahtani**  
-GitHub: [https://github.com/lq-p3](https://github.com/lq-p3)
+**Ali Alqahtani** — [GitHub](https://github.com/lq-p3) · [LinkedIn](https://www.linkedin.com/in/ali-alqahtani-2a8297333)
 
 ---
 
 ## License
 
-No license has currently been specified for this project.
+This project is licensed under the [MIT License](LICENSE).
