@@ -23,8 +23,15 @@ SmartTourism.ML/__pycache__/
 *.sqlite
 *.sqlite3
 
-# OS files and local shortcuts
+# OS / editor files
 .DS_Store
 Thumbs.db
-Unity Hub
+.vs/
+.vscode/
+*.user
+
+# Local environment files
+.env
+.env.*
+!.env.example
 
